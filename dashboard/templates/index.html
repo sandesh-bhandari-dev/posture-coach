@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Posture Coach</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:        #F4F1EB;
+    --surface:   #EDEAE2;
+    --border:    #D6D1C4;
+    --text:      #1A1915;
+    --muted:     #7A7568;
+    --faint:     #A8A399;
+    --good:      #2D5A3D;
+    --warn:      #8B5E1A;
+    --bad:       #7A1F1F;
+    --good-bg:   #E8F0EB;
+    --warn-bg:   #F5EDDF;
+    --bad-bg:    #F0E5E5;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 14px; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-weight: 300;
+    min-height: 100vh;
+    letter-spacing: 0.01em;
+  }
+
+  .site-header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 40px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+
+  .site-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--text);
+  }
+
+  .site-title span {
+    font-style: italic;
+    color: var(--muted);
+  }
+
+  .site-meta {
+    font-size: 10px;
+    color: var(--faint);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    min-height: calc(100vh - 61px);
+  }
+
+  .panel-left {
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .panel-section {
+    padding: 28px 32px;
+    border-bottom: 1px solid var(--border);
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .panel-section:nth-child(2) { animation-delay: 0.05s; }
+  .panel-section:nth-child(3) { animation-delay: 0.10s; }
+  .panel-section:nth-child(4) { animation-delay: 0.15s; }
+  .panel-section:nth-child(5) { animation-delay: 0.20s; }
+
+  .section-label {
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .score-display {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+
+  .score-number {
+    font-family: 'DM Serif Display', serif;
+    font-size: 84px;
+    line-height: 1;
+    color: var(--text);
+    font-weight: 400;
+    transition: color 0.6s ease;
+  }
+
+  .score-denom {
+    font-size: 16px;
+    color: var(--faint);
+    margin-bottom: 12px;
+    font-weight: 300;
+  }
+
+  .score-bar-track {
+    width: 100%;
+    height: 1px;
+    background: var(--border);
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+
+  .score-bar-fill {
+    height: 100%;
+    background: var(--text);
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1), background 0.6s ease;
+    width: 0%;
+  }
+
+  .status-text {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 9px;
+    display: inline-block;
+    font-weight: 500;
+  }
+
+  .status-text.good    { background: var(--good-bg); color: var(--good); }
+  .status-text.warn    { background: var(--warn-bg); color: var(--warn); }
+  .status-text.bad     { background: var(--bad-bg);  color: var(--bad); }
+  .status-text.unknown { background: var(--surface); color: var(--faint); }
+
+  .feedback-list { list-style: none; }
+
+  .feedback-list li {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.65;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    font-weight: 300;
+  }
+
+  .feedback-list li:last-child { border-bottom: none; }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+
+  .metric-cell {
+    background: var(--bg);
+    padding: 12px 14px;
+  }
+
+  .metric-name {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--faint);
+    margin-bottom: 5px;
+  }
+
+  .metric-val {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--text);
+    font-weight: 400;
+  }
+
+  .streak-block {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .streak-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--faint);
+  }
+
+  .streak-value {
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  .streak-track {
+    width: 100%;
+    height: 1px;
+    background: var(--border);
+    overflow: hidden;
+  }
+
+  .streak-fill {
+    height: 100%;
+    background: var(--bad);
+    transition: width 1s linear;
+    width: 0%;
+  }
+
+  .session-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+
+  .session-stat {
+    background: var(--bg);
+    padding: 14px 12px;
+    text-align: center;
+  }
+
+  .session-stat .n {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px;
+    color: var(--text);
+    display: block;
+    font-weight: 400;
+  }
+
+  .session-stat .l {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--faint);
+    display: block;
+    margin-top: 2px;
+  }
+
+  .panel-right {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chart-block {
+    padding: 28px 40px;
+    border-bottom: 1px solid var(--border);
+    flex: 1;
+    animation: fadeUp 0.5s ease 0.1s both;
+  }
+
+  .chart-wrap {
+    position: relative;
+    height: 190px;
+    margin-top: 18px;
+  }
+
+  .heatmap-block {
+    padding: 28px 40px;
+    flex: 1;
+    animation: fadeUp 0.5s ease 0.2s both;
+  }
+
+  .heatmap-scroll {
+    overflow-x: auto;
+    margin-top: 18px;
+  }
+
+  #heatmap-table {
+    border-collapse: collapse;
+    font-family: 'DM Mono', monospace;
+  }
+
+  #heatmap-table th {
+    color: var(--faint);
+    font-weight: 400;
+    padding: 2px 2px;
+    text-align: center;
+    font-size: 9px;
+    letter-spacing: 0.04em;
+  }
+
+  #heatmap-table td {
+    width: 24px;
+    height: 18px;
+    border-radius: 2px;
+    cursor: default;
+    transition: opacity 0.15s;
+  }
+
+  #heatmap-table td:hover { opacity: 0.65; }
+
+  .no-data {
+    color: var(--faint);
+    font-size: 12px;
+    padding: 30px 0;
+    font-style: italic;
+    font-family: 'Instrument Serif', serif;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="site-title">Posture Coach <span>/ Live Monitor</span></div>
+  <div class="site-meta">Real-time analysis</div>
+</header>
+
+<div class="layout">
+
+  <aside class="panel-left">
+
+    <div class="panel-section">
+      <div class="section-label">Current Score</div>
+      <div class="score-display">
+        <div class="score-number" id="score-num">0</div>
+        <div class="score-denom">/100</div>
+      </div>
+      <div class="score-bar-track">
+        <div class="score-bar-fill" id="score-bar"></div>
+      </div>
+      <span class="status-text unknown" id="status-badge">Connecting</span>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-label">Feedback</div>
+      <ul class="feedback-list" id="feedback-list">
+        <li style="font-style:italic;font-family:'Instrument Serif',serif;color:var(--faint)">Waiting for pose data</li>
+      </ul>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-label">Measurements</div>
+      <div class="metrics-grid">
+        <div class="metric-cell">
+          <div class="metric-name">Forward Head</div>
+          <div class="metric-val" id="m-fha">0°</div>
+        </div>
+        <div class="metric-cell">
+          <div class="metric-name">Shoulder Tilt</div>
+          <div class="metric-val" id="m-tilt">0.00</div>
+        </div>
+        <div class="metric-cell">
+          <div class="metric-name">Spine Lean</div>
+          <div class="metric-val" id="m-lean">0.00</div>
+        </div>
+        <div class="metric-cell">
+          <div class="metric-name">Neck Height</div>
+          <div class="metric-val" id="m-neck">0.00</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-label">Poor Posture Streak</div>
+      <div class="streak-block">
+        <span class="streak-label">Duration</span>
+        <span class="streak-value" id="streak-time">None</span>
+      </div>
+      <div class="streak-track">
+        <div class="streak-fill" id="streak-fill"></div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-label">Session</div>
+      <div class="session-row">
+        <div class="session-stat">
+          <span class="n" id="s-good">0%</span>
+          <span class="l">Good</span>
+        </div>
+        <div class="session-stat">
+          <span class="n" id="s-dur">0m</span>
+          <span class="l">Duration</span>
+        </div>
+        <div class="session-stat">
+          <span class="n" id="s-alerts">0</span>
+          <span class="l">Alerts</span>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <main class="panel-right">
+
+    <div class="chart-block">
+      <div class="section-label">Score History — 7 Days</div>
+      <div class="chart-wrap">
+        <canvas id="history-chart"></canvas>
+      </div>
+    </div>
+
+    <div class="heatmap-block">
+      <div class="section-label">Weekly Heatmap — Avg Score by Hour</div>
+      <div class="heatmap-scroll">
+        <div id="heatmap-container">
+          <p class="no-data">Heatmap builds after a few sessions.</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+</div>
+
+<script>
+function scoreColour(s) {
+  return s >= 75 ? '#2D5A3D' : s >= 50 ? '#8B5E1A' : '#7A1F1F';
+}
+
+function heatColour(score) {
+  if (score === null) return '#EDEAE2';
+  if (score >= 75) return `rgba(45,90,61,${0.12 + 0.55*(score/100)})`;
+  if (score >= 50) return `rgba(139,94,26,${0.12 + 0.5*(score/100)})`;
+  return `rgba(122,31,31,${0.12 + 0.5*(score/100)})`;
+}
+
+function updateLive(d) {
+  const score = d.score || 0;
+  const status = d.status || 'unknown';
+  const colour = scoreColour(score);
+
+  document.getElementById('score-num').textContent = d.detected ? Math.round(score) : '0';
+  document.getElementById('score-num').style.color = d.detected ? colour : '#A8A399';
+  document.getElementById('score-bar').style.width = score + '%';
+  document.getElementById('score-bar').style.background = colour;
+
+  const badge = document.getElementById('status-badge');
+  const labels = { good: 'Good posture', warn: 'Watch your posture', bad: 'Poor posture' };
+  badge.className = 'status-text ' + status;
+  badge.textContent = d.detected ? (labels[status] || status) : 'No person detected';
+
+  const fl = document.getElementById('feedback-list');
+  if (d.feedback && d.feedback.length) {
+    fl.innerHTML = d.feedback.map(f => `<li>${f}</li>`).join('');
+  }
+
+  const streak = d.streak_min || 0;
+  document.getElementById('streak-fill').style.width = Math.min(100, (streak / 10) * 100) + '%';
+  document.getElementById('streak-time').textContent = streak > 0 ? streak.toFixed(1) + ' min' : 'None';
+
+  const s = d.session || {};
+  document.getElementById('s-good').textContent   = (s.good_pct || 0) + '%';
+  document.getElementById('s-dur').textContent    = (s.duration_min || 0) + 'm';
+  document.getElementById('s-alerts').textContent = s.alerts || 0;
+}
+
+const evtSource = new EventSource('/stream');
+evtSource.onmessage = e => { try { updateLive(JSON.parse(e.data)); } catch {} };
+fetch('/api/live').then(r => r.json()).then(updateLive).catch(() => {});
+
+let histChart = null;
+
+function buildHistoryChart(data) {
+  const ctx = document.getElementById('history-chart').getContext('2d');
+  if (histChart) histChart.destroy();
+
+  if (!data.length) {
+    ctx.canvas.parentElement.innerHTML = '<p class="no-data">No history yet. Keep the app running to build history.</p>';
+    return;
+  }
+
+  histChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.map(d => d.ts_iso.slice(5,16).replace('T',' ')),
+      datasets: [{
+        label: 'Score',
+        data: data.map(d => d.score),
+        borderColor: '#1A1915',
+        backgroundColor: 'rgba(26,25,21,0.04)',
+        borderWidth: 1,
+        pointRadius: 0,
+        fill: true,
+        tension: 0.4,
+      },{
+        label: 'Good threshold',
+        data: data.map(() => 75),
+        borderColor: 'rgba(45,90,61,0.2)',
+        borderDash: [3,4],
+        borderWidth: 1,
+        pointRadius: 0,
+        fill: false,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1A1915',
+          titleFont: { family: 'DM Mono', size: 10 },
+          bodyFont:  { family: 'DM Mono', size: 11 },
+          padding: 10,
+          cornerRadius: 2,
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#A8A399', maxTicksLimit: 8, font: { family: 'DM Mono', size: 9 } },
+          grid:  { color: '#D6D1C4', lineWidth: 0.5 },
+          border:{ color: '#D6D1C4' },
+        },
+        y: {
+          min: 0, max: 100,
+          ticks: { color: '#A8A399', font: { family: 'DM Mono', size: 9 } },
+          grid:  { color: '#D6D1C4', lineWidth: 0.5 },
+          border:{ color: '#D6D1C4' },
+        },
+      },
+    },
+  });
+}
+
+fetch('/api/history').then(r => r.json()).then(buildHistoryChart).catch(() => {});
+
+const DAYS  = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const HOURS = Array.from({length:24},(_,i)=>i);
+
+function buildHeatmap(data) {
+  const container = document.getElementById('heatmap-container');
+  if (!data.length) return;
+
+  const lookup = {};
+  data.forEach(({dow,hour,avg_score}) => {
+    if (!lookup[dow]) lookup[dow] = {};
+    lookup[dow][hour] = avg_score;
+  });
+
+  const visHours = HOURS.filter(h => h >= 6);
+  let html = '<table id="heatmap-table"><thead><tr><th></th>';
+  visHours.forEach(h => { html += `<th>${h}</th>`; });
+  html += '</tr></thead><tbody>';
+
+  DAYS.forEach((day,dow) => {
+    html += `<tr><th style="text-align:right;padding-right:8px;color:#A8A399;font-size:9px;letter-spacing:0.06em">${day}</th>`;
+    visHours.forEach(h => {
+      const score = lookup[dow]?.[h] ?? null;
+      const bg    = heatColour(score);
+      const tip   = score !== null ? `${day} ${h}:00  ${score}/100` : 'No data';
+      html += `<td style="background:${bg}" title="${tip}"></td>`;
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+fetch('/api/heatmap').then(r => r.json()).then(buildHeatmap).catch(() => {});
+
+setInterval(() => {
+  fetch('/api/history').then(r => r.json()).then(buildHistoryChart).catch(() => {});
+  fetch('/api/heatmap').then(r => r.json()).then(buildHeatmap).catch(() => {});
+}, 60000);
+</script>
+</body>
+</html>
