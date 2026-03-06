@@ -6,7 +6,7 @@ This project is a real-time posture monitor that uses your webcam to track how y
 
 ## Demo
 
-![Posture Coach Dashboard](demo.png)
+A live dashboard running at localhost:5000 showing your posture score, feedback, session stats, and a weekly heatmap of your best and worst hours.
 
 ## What it tracks
 
@@ -33,37 +33,16 @@ dashboard/templates/        the dashboard UI
 
 ## How to Run
 
-This project requires Python 3.11. MediaPipe does not support Python 3.12 or newer yet.
-
-First clone the repo and go into the folder.
+First install the required libraries.
 
 ```
-git clone https://github.com/sandesh-bhandari-dev/posture-coach.git
-cd posture-coach
-```
-
-Then install the required libraries. Make sure you are using Python 3.11 to do this.
-
-```
-python3.11 -m pip install opencv-python mediapipe==0.10.14 flask plyer numpy
-```
-
-On Windows if you have multiple Python versions installed run it like this instead.
-
-```
-C:\Users\YourName\AppData\Local\Programs\Python\Python311\python.exe -m pip install opencv-python mediapipe==0.10.14 flask plyer numpy
+pip install opencv-python mediapipe==0.10.14 flask plyer numpy
 ```
 
 Then run it.
 
 ```
-python3.11 run.py
-```
-
-On Windows with multiple Python versions.
-
-```
-C:\Users\YourName\AppData\Local\Programs\Python\Python311\python.exe run.py
+python run.py
 ```
 
 The webcam window will open and the dashboard will launch automatically at http://localhost:5000. Press Q in the webcam window or Ctrl+C to stop.
