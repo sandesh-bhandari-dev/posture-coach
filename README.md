@@ -45,7 +45,8 @@ Then run it.
 python run.py
 ```
 
-The webcam window will open and the dashboard will launch automatically at http://localhost:5000. Press Q in the webcam window or Ctrl+C to stop.
+The webcam window will open and the dashboard will launch automatically at http://localhost:5000. 
+Press Q in the webcam window or Ctrl+C to stop.
 
 ## Options
 
